@@ -24,7 +24,8 @@ from samplers import RASampler
 import models
 import utils
 
-import transformer
+import transformer.leit
+import transformer.clit
 
 
 def get_args_parser():
