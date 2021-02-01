@@ -24,6 +24,8 @@ from samplers import RASampler
 import models
 import utils
 
+import transformer
+
 
 def get_args_parser():
     parser = argparse.ArgumentParser('DeiT training and evaluation script', add_help=False)
@@ -45,6 +47,12 @@ def get_args_parser():
     parser.set_defaults(model_ema=True)
     parser.add_argument('--model-ema-decay', type=float, default=0.99996, help='')
     parser.add_argument('--model-ema-force-cpu', action='store_true', default=False, help='')
+
+    # Added model parameters
+    parser.add_argument('--local-size', default=3, type=int, help='kernel size in LocalEnhancedFeedForward')
+    parser.add_argument('--local-with-bn', action='store_true')
+    parser.add_argument('--no-local-with-bn', action='store_false', dest='local_with_bn')
+    parser.set_defaults(local_with_bn=True)
 
     # Optimizer parameters
     parser.add_argument('--opt', default='adamw', type=str, metavar='OPTIMIZER',
@@ -238,14 +246,26 @@ def main(args):
             label_smoothing=args.smoothing, num_classes=args.nb_classes)
 
     print(f"Creating model: {args.model}")
-    model = create_model(
-        args.model,
-        pretrained=False,
-        num_classes=args.nb_classes,
-        drop_rate=args.drop,
-        drop_path_rate=args.drop_path,
-        drop_block_rate=None,
-    )
+    if args.model in ['deit_tiny_patch16_224', 'deit_small_patch16_224', 'deit_base_patch16_224']:
+        model = create_model(
+            args.model,
+            pretrained=False,
+            num_classes=args.nb_classes,
+            drop_rate=args.drop,
+            drop_path_rate=args.drop_path,
+            drop_block_rate=None,
+        )
+    else:
+        model = create_model(
+            args.model,
+            pretrained=False,
+            num_classes=args.nb_classes,
+            drop_rate=args.drop,
+            drop_path_rate=args.drop_path,
+            drop_block_rate=None,
+            local_size=args.local_size,  # added by yuankun
+            local_with_bn=args.local_with_bn  # added by yuankun
+        )
 
     if args.finetune:
         if args.finetune.startswith('https'):
