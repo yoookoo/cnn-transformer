@@ -343,6 +343,7 @@ def leit_base_patch16_224(pretrained=False, **kwargs):
     model.default_cfg = _cfg()
     return model
 
+
 @register_model
 def leit_tiny_patch16_384(pretrained=False, **kwargs):
     model = VisionTransformer(

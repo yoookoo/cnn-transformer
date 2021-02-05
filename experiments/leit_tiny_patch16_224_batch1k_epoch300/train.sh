@@ -5,4 +5,5 @@ python -u -m main \
     --batch-size 64 \
     --data-path /mnt/lustre/share/images \
     --output_dir ./ --dist-eval \
+     --resume checkpoint.pth \
     2>&1 | tee log.txt
