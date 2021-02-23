@@ -37,6 +37,21 @@ class ConvStem2(nn.Module):
         return x
 
 
+class ConvStem3(nn.Module):
+    def __init__(self, in_chans=3, out_chans=64, kernel_size=7, stride=2):
+        super(ConvStem3, self).__init__()
+        self.conv = nn.Conv2d(in_chans, out_chans, kernel_size=kernel_size, stride=stride,
+                              padding=kernel_size // 2, bias=False)
+        self.bn = nn.BatchNorm2d(out_chans)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)
+        x = self.maxpool(x)
+        return x
+
+
 class Mlp(nn.Module):
     def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.):
         super().__init__()
@@ -464,6 +479,125 @@ def goodit2_tiny_patch16_224(pretrained=False, **kwargs):
     model = VisionTransformer(
         hybrid_backbone=backbone,
         patch_size=4, embed_dim=192, depth=12, num_heads=3, mlp_ratio=4, qkv_bias=True,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6), feedforward_type='conv', **kwargs)
+    model.default_cfg = _cfg()
+    print(model)
+    return model
+
+
+@register_model
+def goodit3_tiny_patch16_224(pretrained=False, **kwargs):
+    """
+    convolutional + pooling stem
+    local enhanced feedforward
+    attention over cls_tokens
+    """
+    backbone = ConvStem3()
+    model = VisionTransformer(
+        hybrid_backbone=backbone,
+        patch_size=4, embed_dim=192, depth=12, num_heads=3, mlp_ratio=4, qkv_bias=True,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6), feedforward_type='conv', **kwargs)
+    model.default_cfg = _cfg()
+    print(model)
+    return model
+
+
+@register_model
+def goodit3_tiny_patch16_384(pretrained=False, **kwargs):
+    """
+    convolutional + pooling stem
+    local enhanced feedforward
+    attention over cls_tokens
+    """
+    backbone = ConvStem3()
+    model = VisionTransformer(
+        hybrid_backbone=backbone, img_size=384,
+        patch_size=4, embed_dim=192, depth=12, num_heads=3, mlp_ratio=4, qkv_bias=True,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6), feedforward_type='conv', **kwargs)
+    model.default_cfg = _cfg()
+    print(model)
+    return model
+
+
+@register_model
+def goodit2_small_patch16_224(pretrained=False, **kwargs):
+    """
+    convolutional + pooling stem
+    local enhanced feedforward
+    attention over cls_tokens
+    """
+    backbone = ConvStem2()
+    model = VisionTransformer(
+        hybrid_backbone=backbone,
+        patch_size=4, embed_dim=384, depth=12, num_heads=6, mlp_ratio=4, qkv_bias=True,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6), feedforward_type='conv', **kwargs)
+    model.default_cfg = _cfg()
+    print(model)
+    return model
+
+
+@register_model
+def goodit3_small_patch16_224(pretrained=False, **kwargs):
+    """
+    convolutional + pooling stem
+    local enhanced feedforward
+    attention over cls_tokens
+    """
+    backbone = ConvStem3()
+    model = VisionTransformer(
+        hybrid_backbone=backbone,
+        patch_size=4, embed_dim=384, depth=12, num_heads=6, mlp_ratio=4, qkv_bias=True,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6), feedforward_type='conv', **kwargs)
+    model.default_cfg = _cfg()
+    print(model)
+    return model
+
+
+@register_model
+def goodit3_small_patch16_384(pretrained=False, **kwargs):
+    """
+    convolutional + pooling stem
+    local enhanced feedforward
+    attention over cls_tokens
+    """
+    backbone = ConvStem3()
+    model = VisionTransformer(
+        hybrid_backbone=backbone, img_size=384,
+        patch_size=4, embed_dim=384, depth=12, num_heads=6, mlp_ratio=4, qkv_bias=True,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6), feedforward_type='conv', **kwargs)
+    model.default_cfg = _cfg()
+    print(model)
+    return model
+
+
+@register_model
+def goodit2_base_patch16_224(pretrained=False, **kwargs):
+    """
+    convolutional + pooling stem
+    local enhanced feedforward
+    attention over cls_tokens
+    """
+    backbone = ConvStem2()
+    model = VisionTransformer(
+        hybrid_backbone=backbone,
+        patch_size=4, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6), feedforward_type='conv', **kwargs)
+    model.default_cfg = _cfg()
+    print(model)
+    return model
+
+
+@register_model
+def goodit3_base_patch16_224(pretrained=False, **kwargs):
+    """
+    convolutional + pooling stem
+    local enhanced feedforward
+    attention over cls_tokens
+    """
+    backbone = ConvStem3()
+    model = VisionTransformer(
+        hybrid_backbone=backbone,
+        patch_size=4, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6), feedforward_type='conv', **kwargs)
     model.default_cfg = _cfg()
     print(model)
