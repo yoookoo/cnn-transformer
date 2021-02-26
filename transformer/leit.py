@@ -13,6 +13,21 @@ from timm.models.registry import register_model
 from timm.models.vision_transformer import default_cfgs, _cfg
 
 
+class ConvStem3(nn.Module):
+    def __init__(self, in_chans=3, out_chans=64, kernel_size=7, stride=2):
+        super(ConvStem3, self).__init__()
+        self.conv = nn.Conv2d(in_chans, out_chans, kernel_size=kernel_size, stride=stride,
+                              padding=kernel_size // 2, bias=False)
+        self.bn = nn.BatchNorm2d(out_chans)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)
+        x = self.maxpool(x)
+        return x
+
+
 class Mlp(nn.Module):
     def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.):
         super().__init__()
@@ -165,7 +180,7 @@ class HybridEmbed(nn.Module):
     """ CNN Feature Map Embedding
     Extract feature map from CNN, flatten, project to embedding dim.
     """
-    def __init__(self, backbone, img_size=224, feature_size=None, in_chans=3, embed_dim=768):
+    def __init__(self, backbone, img_size=224, patch_size=16, feature_size=None, in_chans=3, embed_dim=768):
         super().__init__()
         assert isinstance(backbone, nn.Module)
         img_size = to_2tuple(img_size)
@@ -179,20 +194,26 @@ class HybridEmbed(nn.Module):
                 training = backbone.training
                 if training:
                     backbone.eval()
-                o = self.backbone(torch.zeros(1, in_chans, img_size[0], img_size[1]))[-1]
+                o = self.backbone(torch.zeros(1, in_chans, img_size[0], img_size[1]))
+                if isinstance(o, (list, tuple)):
+                    o = o[-1]  # last feature if backbone outputs list/tuple of features
                 feature_size = o.shape[-2:]
                 feature_dim = o.shape[1]
                 backbone.train(training)
         else:
             feature_size = to_2tuple(feature_size)
             feature_dim = self.backbone.feature_info.channels()[-1]
-        self.num_patches = feature_size[0] * feature_size[1]
-        self.proj = nn.Linear(feature_dim, embed_dim)
+        print('feature_size is {}, feature_dim is {}, patch_size is {}'.format(
+            feature_size, feature_dim, patch_size
+        ))
+        self.num_patches = (feature_size[0] // patch_size) * (feature_size[1] // patch_size)
+        self.proj = nn.Conv2d(feature_dim, embed_dim, kernel_size=patch_size, stride=patch_size)
 
     def forward(self, x):
-        x = self.backbone(x)[-1]
-        x = x.flatten(2).transpose(1, 2)
-        x = self.proj(x)
+        x = self.backbone(x)
+        if isinstance(x, (list, tuple)):
+            x = x[-1]  # last feature if backbone outputs list/tuple of features
+        x = self.proj(x).flatten(2).transpose(1, 2)
         return x
 
 
@@ -246,7 +267,7 @@ class VisionTransformer(nn.Module):
 
         if hybrid_backbone is not None:
             self.patch_embed = HybridEmbed(
-                hybrid_backbone, img_size=img_size, in_chans=in_chans, embed_dim=embed_dim)
+                hybrid_backbone, img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim)
         else:
             self.patch_embed = PatchEmbed(
                 img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim)
@@ -367,5 +388,16 @@ def leit_base_patch16_384(pretrained=False, **kwargs):
     model = VisionTransformer(
         img_size=384, patch_size=16, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6), feedforward_type='conv', **kwargs)
+    model.default_cfg = _cfg()
+    return model
+
+
+@register_model
+def cinit_base_patch16_224(pretrained=False, **kwargs):
+    backbone = ConvStem3()
+    model = VisionTransformer(
+        hybrid_backbone=backbone,
+        patch_size=4, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6), feedforward_type='linear', **kwargs)
     model.default_cfg = _cfg()
     return model

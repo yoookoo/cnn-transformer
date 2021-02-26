@@ -390,6 +390,9 @@ def clit_tiny_patch16_224(pretrained=False, **kwargs):
 
 @register_model
 def clsit_tiny_patch16_224(pretrained=False, **kwargs):
+    """
+    original feedforward + cross layer attention
+    """
     model = VisionTransformer(
         patch_size=16, embed_dim=192, depth=12, num_heads=3, mlp_ratio=4, qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6), feedforward_type='linear', **kwargs)
@@ -413,6 +416,16 @@ def clit_base_patch16_224(pretrained=False, **kwargs):
     model = VisionTransformer(
         patch_size=16, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6), feedforward_type='conv', **kwargs)
+    model.default_cfg = _cfg()
+    print(model)
+    return model
+
+
+@register_model
+def clsit_base_patch16_224(pretrained=False, **kwargs):
+    model = VisionTransformer(
+        patch_size=16, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6), feedforward_type='linear', **kwargs)
     model.default_cfg = _cfg()
     print(model)
     return model
